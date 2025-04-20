@@ -280,6 +280,7 @@
         function stopConfetti() {
             clearInterval(confettiInterval);
             confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            confettiCanvas.style.display = "none";
         }
 
         restartButton.addEventListener("click", () => {
