@@ -41,6 +41,7 @@
         }
 
         #confettiCanvas {
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
@@ -60,7 +61,8 @@
         <button id="restartButton">Spela igen</button>
     </div>
 
-
+    <canvas id="confettiCanvas"></canvas>
+ 
     <audio id="winMusic">
         <source src="https://cdn.pixabay.com/download/audio/2023/06/08/audio_4a2a9070f0.mp3?filename=winner-171541.mp3"
             type="audio/mpeg">
@@ -253,6 +255,7 @@
         }
 
         function launchConfetti() {
+            confettiCanvas.style.display = "block";
             confetti = Array.from({ length: 200 }, () => ({
                 x: Math.random() * window.innerWidth,
                 y: Math.random() * window.innerHeight - window.innerHeight,
