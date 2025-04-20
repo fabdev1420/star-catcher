@@ -124,6 +124,10 @@
             player.dx = 0;
             if (keys["ArrowLeft"]) player.dx = -3;
             if (keys["ArrowRight"]) player.dx = 3;
+            if (keys["ArrowuP"] && player.grounded) 
+            {
+                player.dy = -25;
+            }
             if (keys[" "] && player.grounded) {
                 if (level == 8 || level == 9) {
                     player.dy = -15;
