@@ -197,6 +197,8 @@
         }
 
         function draw() {
+            ctx.drawImage(backgroundCanvas, 0, 0);
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // Spelare
@@ -300,7 +302,7 @@
 
 
         // Ny bakgrund
-        const backgroundCanvas = document.createElement("gameCanvas");
+        const backgroundCanvas = document.createElement("canvas");
         backgroundCanvas.width = canvas.width;
         backgroundCanvas.height = canvas.height;
         const bgCtx = backgroundCanvas.getContext("2d");
