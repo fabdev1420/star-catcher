@@ -2,6 +2,44 @@
 <html>
 
 <head>
+
+    const backgroundCanvas = document.createElement("canvas");
+    backgroundCanvas.width = canvas.width;
+    backgroundCanvas.height = canvas.height;
+    const bgCtx = backgroundCanvas.getContext("2d");
+    
+    function generateSpaceBackground() {
+      // Fyll med mörk rymdfärg
+      bgCtx.fillStyle = "#0a0a2a";
+      bgCtx.fillRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+    
+      // Stjärnor
+      for (let i = 0; i < 150; i++) {
+        const x = Math.random() * backgroundCanvas.width;
+        const y = Math.random() * backgroundCanvas.height;
+        const r = Math.random() * 1.5;
+        bgCtx.fillStyle = "white";
+        bgCtx.beginPath();
+        bgCtx.arc(x, y, r, 0, Math.PI * 2);
+        bgCtx.fill();
+      }
+    
+      // Slumpade planeter
+      for (let i = 0; i < 6; i++) {
+        const x = Math.random() * backgroundCanvas.width;
+        const y = Math.random() * backgroundCanvas.height;
+        const radius = 20 + Math.random() * 40;
+        const hue = Math.floor(Math.random() * 360);
+        bgCtx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+        bgCtx.beginPath();
+        bgCtx.arc(x, y, radius, 0, Math.PI * 2);
+        bgCtx.fill();
+      }
+    }
+    
+    generateSpaceBackground(); // Kör bara en gång vid start
+    
+
     <meta charset="utf-8" />
     <title>Plattformsspel med portaler</title>
     <style>
