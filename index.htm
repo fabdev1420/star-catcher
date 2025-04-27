@@ -2,8 +2,6 @@
 <html>
 
 <head>
-
-
     <meta charset="utf-8" />
     <title>STAR * CATCHER</title>
     <style>
@@ -67,8 +65,7 @@
     <canvas id="confettiCanvas"></canvas>
 
     <audio id="winMusic">
-        <source src="https://cdn.pixabay.com/download/audio/2023/06/08/audio_4a2a9070f0.mp3?filename=winner-171541.mp3"
-            type="audio/mpeg">
+        <source src="https://cdn.pixabay.com/download/audio/2023/06/08/audio_4a2a9070f0.mp3?filename=winner-171541.mp3" type="audio/mpeg">
     </audio>
 
     <audio id="bgm" loop autoplay>
@@ -78,7 +75,38 @@
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
-        const music = document.getElementById("bgm");
+
+        // --- BAKGRUND ---
+        const backgroundCanvas = document.createElement("canvas");
+        backgroundCanvas.width = canvas.width;
+        backgroundCanvas.height = canvas.height;
+        const bgCtx = backgroundCanvas.getContext("2d");
+
+        function generateSpaceBackground() {
+            bgCtx.fillStyle = "#0a0a2a";
+            bgCtx.fillRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+
+            for (let i = 0; i < 150; i++) {
+                const x = Math.random() * backgroundCanvas.width;
+                const y = Math.random() * backgroundCanvas.height;
+                const r = Math.random() * 1.5;
+                bgCtx.fillStyle = "white";
+                bgCtx.beginPath();
+                bgCtx.arc(x, y, r, 0, Math.PI * 2);
+                bgCtx.fill();
+            }
+
+            for (let i = 0; i < 6; i++) {
+                const x = Math.random() * backgroundCanvas.width;
+                const y = Math.random() * backgroundCanvas.height;
+                const radius = 20 + Math.random() * 40;
+                const hue = Math.floor(Math.random() * 360);
+                bgCtx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+                bgCtx.beginPath();
+                bgCtx.arc(x, y, radius, 0, Math.PI * 2);
+                bgCtx.fill();
+            }
+        }
 
         const player = { x: 50, y: 300, width: 30, height: 30, color: "deepskyblue", dx: 0, dy: 0, grounded: false };
         const gravity = 0.5;
@@ -91,7 +119,6 @@
         document.addEventListener("keydown", (e) => keys[e.key] = true);
         document.addEventListener("keyup", (e) => keys[e.key] = false);
 
-        // LEVELDATA (kan utökas)
         const levels = Array.from({ length: 10 }, (_, i) => {
             const platforms = [
                 { x: 0, y: 370, width: 800, height: 30 },
@@ -126,17 +153,11 @@
             player.dx = 0;
             if (keys["ArrowLeft"]) player.dx = -3;
             if (keys["ArrowRight"]) player.dx = 3;
-            if (keys["ArrowuP"] && player.grounded) {
+            if (keys["ArrowUp"] && player.grounded) {
                 player.dy = -25;
             }
             if (keys[" "] && player.grounded) {
-                if (level == 8 || level == 9) {
-                    player.dy = -15;
-                } else {
-                    player.dy = -12;
-
-                }
-
+                player.dy = -12;
                 player.grounded = false;
             }
 
@@ -144,7 +165,6 @@
             player.x += player.dx;
             player.y += player.dy;
 
-            // Kollision med plattformar
             player.grounded = false;
             currentPlatforms.forEach(p => {
                 if (player.x < p.x + p.width &&
@@ -157,7 +177,6 @@
                 }
             });
 
-            // Samla stjärnor
             currentStars.forEach(star => {
                 if (!star.collected &&
                     player.x < star.x + 20 &&
@@ -169,7 +188,6 @@
                 }
             });
 
-            // Visa portal om alla stjärnor tagits
             if (currentStars.every(s => s.collected)) {
                 if (!portalVisible) {
                     portalVisible = true;
@@ -179,7 +197,6 @@
                 }
             }
 
-            // Gå in i portalen
             if (portalVisible &&
                 player.x < portal.x + portal.width &&
                 player.x + player.width > portal.x &&
@@ -197,21 +214,16 @@
         }
 
         function draw() {
-
-
-
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
             ctx.drawImage(backgroundCanvas, 0, 0);
 
-            // Spelare
             ctx.fillStyle = player.color;
             ctx.fillRect(player.x, player.y, player.width, player.height);
 
-            // Plattformar
             ctx.fillStyle = "white";
             currentPlatforms.forEach(p => ctx.fillRect(p.x, p.y, p.width, p.height));
 
-            // Stjärnor
             currentStars.forEach(star => {
                 if (!star.collected) {
                     ctx.fillStyle = "gold";
@@ -221,7 +233,6 @@
                 }
             });
 
-            // Portal
             if (portalVisible) {
                 portalPulse += 0.1;
                 const alpha = 0.6 + 0.4 * Math.sin(portalPulse);
@@ -229,7 +240,6 @@
                 ctx.fillRect(portal.x, portal.y, portal.width, portal.height);
             }
 
-            // Text
             ctx.fillStyle = "white";
             ctx.font = "20px Arial";
             ctx.fillText("Stjärnor: " + score, 10, 30);
@@ -242,10 +252,10 @@
             requestAnimationFrame(loop);
         }
 
+        generateSpaceBackground();
         loadLevel(level);
         loop();
 
-        // Game over skärm och konfetti
         const gameOverScreen = document.getElementById("gameOverScreen");
         const restartButton = document.getElementById("restartButton");
         const winMusic = document.getElementById("winMusic");
@@ -301,49 +311,6 @@
             level = 1;
             loadLevel(level);
         });
-
-
-
-        function generateSpaceBackground() {
-            // Fyll med mörk rymdfärg
-            bgCtx.fillStyle = "#0a0a2a";
-            bgCtx.fillRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
-
-            // Stjärnor
-            for (let i = 0; i < 150; i++) {
-                const x = Math.random() * backgroundCanvas.width;
-                const y = Math.random() * backgroundCanvas.height;
-                const r = Math.random() * 1.5;
-                bgCtx.fillStyle = "white";
-                bgCtx.beginPath();
-                bgCtx.arc(x, y, r, 0, Math.PI * 2);
-                bgCtx.fill();
-            }
-
-            // Slumpade planeter
-            for (let i = 0; i < 6; i++) {
-                const x = Math.random() * backgroundCanvas.width;
-                const y = Math.random() * backgroundCanvas.height;
-                const radius = 20 + Math.random() * 40;
-                const hue = Math.floor(Math.random() * 360);
-                bgCtx.fillStyle = `hsl(${hue}, 80%, 60%)`;
-                bgCtx.beginPath();
-                bgCtx.arc(x, y, radius, 0, Math.PI * 2);
-                bgCtx.fill();
-            }
-        }
-
-
-        const backgroundCanvas = document.createElement("canvas");
-backgroundCanvas.width = canvas.width;
-backgroundCanvas.height = canvas.height;
-const bgCtx = backgroundCanvas.getContext("2d");
-
-
-        generateSpaceBackground(); // Kör bara en gång vid start
-
-
-
     </script>
 </body>
 
