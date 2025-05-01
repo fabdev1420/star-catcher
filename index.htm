@@ -65,7 +65,8 @@
     <canvas id="confettiCanvas"></canvas>
 
     <audio id="winMusic">
-        <source src="https://cdn.pixabay.com/download/audio/2023/06/08/audio_4a2a9070f0.mp3?filename=winner-171541.mp3" type="audio/mpeg">
+        <source src="https://cdn.pixabay.com/download/audio/2023/06/08/audio_4a2a9070f0.mp3?filename=winner-171541.mp3"
+            type="audio/mpeg">
     </audio>
 
     <audio id="bgm" loop autoplay>
@@ -108,6 +109,8 @@
             }
         }
 
+
+        // --- INSTÄLLNINGAR ---
         const player = { x: 50, y: 300, width: 30, height: 30, color: "deepskyblue", dx: 0, dy: 0, grounded: false };
         const gravity = 0.5;
         const keys = {};
@@ -115,6 +118,13 @@
         let level = 0;
         let portalVisible = false;
         let portalPulse = 0;
+
+        // -- skins
+        let gameState = "menu"; // "menu" eller "playing"
+        let currentSkin = 0;
+        const playerSkins = ["red", "blue", "green", "purple"];
+        let keyCooldown = false; // För att undvika att man håller in knappar i menyn
+
 
         document.addEventListener("keydown", (e) => keys[e.key] = true);
         document.addEventListener("keyup", (e) => keys[e.key] = false);
@@ -150,83 +160,118 @@
         }
 
         function update() {
+
+
+            if (gameState === "menu") {
+                // Hantera menyknappar
+                if (keys["s"] && !keyCooldown) {
+                    currentSkin = (currentSkin + 1) % playerSkins.length;
+                    keyCooldown = true;
+                }
+                if (keys["Enter"] && !keyCooldown) {
+                    gameState = "playing";
+                    loadLevel(0);
+                    keyCooldown = true;
+                }
+                if (!keys["s"] && !keys["Enter"]) {
+                    keyCooldown = false;
+                }
+                return; // Hoppa över speluppdatering när vi är i menyn
+            }
+
+            // SPELLOGIK FÖR "PLAYING"
             player.dx = 0;
             if (keys["ArrowLeft"]) player.dx = -3;
             if (keys["ArrowRight"]) player.dx = 3;
-            if (keys["ArrowUp"] && player.grounded) {
-                player.dy = -25;
-            }
-            if (keys[" "] && player.grounded) {
-                if (level == 8 || level == 9) {
-                    player.dy = -14;
+            if ((keys["ArrowUp"] || keys[" "]) && player.grounded) {
+                if (level >= 8) {
+                    player.dy = -14; // Högre hopp i nivå 9 och 10
                 } else {
                     player.dy = -12;
-
-                }
-
-
-                player.grounded = false;
-            }
-
-            player.dy += gravity;
-            player.x += player.dx;
-            player.y += player.dy;
-
-            player.grounded = false;
-            currentPlatforms.forEach(p => {
-                if (player.x < p.x + p.width &&
-                    player.x + player.width > p.x &&
-                    player.y + player.height < p.y + 10 &&
-                    player.y + player.height + player.dy >= p.y) {
-                    player.y = p.y - player.height;
-                    player.dy = 0;
-                    player.grounded = true;
-                }
-            });
-
-            currentStars.forEach(star => {
-                if (!star.collected &&
-                    player.x < star.x + 20 &&
-                    player.x + player.width > star.x &&
-                    player.y < star.y + 20 &&
-                    player.y + player.height > star.y) {
-                    star.collected = true;
-                    score++;
-                }
-            });
-
-            if (currentStars.every(s => s.collected)) {
-                if (!portalVisible) {
-                    portalVisible = true;
-                    const lastPlatform = currentPlatforms[currentPlatforms.length - 1];
-                    portal.x = lastPlatform.x + lastPlatform.width - 50;
-                    portal.y = lastPlatform.y - portal.height;
-                }
-            }
-
-            if (portalVisible &&
-                player.x < portal.x + portal.width &&
-                player.x + player.width > portal.x &&
-                player.y < portal.y + portal.height &&
-                player.y + player.height > portal.y) {
-                if (level < levels.length - 1) {
-                    level++;
-                    loadLevel(level);
-                } else {
-                    showGameOver();
-                    level = 0;
-                    loadLevel(level);
                 }
             }
         }
 
-        function draw() {
+
+
+        player.dx = 0;
+        if (keys["ArrowLeft"]) player.dx = -3;
+        if (keys["ArrowRight"]) player.dx = 3;
+        if (keys["ArrowUp"] && player.grounded) {
+            player.dy = -25;
+        }
+        if (keys[" "] && player.grounded) {
+            if (level == 8 || level == 9) {
+                player.dy = -14;
+            } else {
+                player.dy = -12;
+
+            }
+
+
+            player.grounded = false;
+        }
+
+        player.dy += gravity;
+        player.x += player.dx;
+        player.y += player.dy;
+
+        player.grounded = false;
+        currentPlatforms.forEach(p => {
+            if (player.x < p.x + p.width &&
+                player.x + player.width > p.x &&
+                player.y + player.height < p.y + 10 &&
+                player.y + player.height + player.dy >= p.y) {
+                player.y = p.y - player.height;
+                player.dy = 0;
+                player.grounded = true;
+            }
+        });
+
+        currentStars.forEach(star => {
+            if (!star.collected &&
+                player.x < star.x + 20 &&
+                player.x + player.width > star.x &&
+                player.y < star.y + 20 &&
+                player.y + player.height > star.y) {
+                star.collected = true;
+                score++;
+            }
+        });
+
+        if (currentStars.every(s => s.collected)) {
+            if (!portalVisible) {
+                portalVisible = true;
+                const lastPlatform = currentPlatforms[currentPlatforms.length - 1];
+                portal.x = lastPlatform.x + lastPlatform.width - 50;
+                portal.y = lastPlatform.y - portal.height;
+            }
+        }
+
+        if (portalVisible &&
+            player.x < portal.x + portal.width &&
+            player.x + player.width > portal.x &&
+            player.y < portal.y + portal.height &&
+            player.y + player.height > portal.y) {
+            if (level < levels.length - 1) {
+                level++;
+                loadLevel(level);
+            } else {
+                showGameOver();
+                level = 0;
+                loadLevel(level);
+            }
+        }
+        }
+
+        function drawGame() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             ctx.drawImage(backgroundCanvas, 0, 0);
 
-            ctx.fillStyle = player.color;
+            ctx.fillStyle = playerSkins[currentSkin];
             ctx.fillRect(player.x, player.y, player.width, player.height);
+
 
             ctx.fillStyle = "white";
             currentPlatforms.forEach(p => ctx.fillRect(p.x, p.y, p.width, p.height));
@@ -253,10 +298,18 @@
             ctx.fillText("Nivå: " + (level + 1), 700, 30);
         }
 
-        function loop() {
-            update();
-            draw();
-            requestAnimationFrame(loop);
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (gameState === "menu") {
+                drawMenu(ctx);
+            } else if (gameState === "playing") {
+                update();        // Uppdatera spelarnas position osv
+                drawGame();      // Ritar hela spelet (bakgrund, plattformar, spelare, stjärnor, portal, osv)
+            }
+
+            requestAnimationFrame(gameLoop);
+
         }
 
         generateSpaceBackground();
