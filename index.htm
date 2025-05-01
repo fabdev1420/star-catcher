@@ -157,7 +157,14 @@
                 player.dy = -25;
             }
             if (keys[" "] && player.grounded) {
-                player.dy = -12;
+                if (level == 8 || level == 9) {
+                    player.dy = -14;
+                } else {
+                    player.dy = -12;
+
+                }
+
+
                 player.grounded = false;
             }
 
