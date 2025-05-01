@@ -180,88 +180,71 @@
             }
 
             // SPELLOGIK FÖR "PLAYING"
+
+
+
             player.dx = 0;
             if (keys["ArrowLeft"]) player.dx = -3;
             if (keys["ArrowRight"]) player.dx = 3;
             if ((keys["ArrowUp"] || keys[" "]) && player.grounded) {
                 if (level >= 8) {
-                    player.dy = -14; // Högre hopp i nivå 9 och 10
+                    player.dy = -14;
                 } else {
                     player.dy = -12;
                 }
-            }
-        }
-
-
-
-        player.dx = 0;
-        if (keys["ArrowLeft"]) player.dx = -3;
-        if (keys["ArrowRight"]) player.dx = 3;
-        if (keys["ArrowUp"] && player.grounded) {
-            player.dy = -25;
-        }
-        if (keys[" "] && player.grounded) {
-            if (level == 8 || level == 9) {
-                player.dy = -14;
-            } else {
-                player.dy = -12;
-
+                player.grounded = false;
             }
 
+            player.dy += gravity;
+            player.x += player.dx;
+            player.y += player.dy;
 
             player.grounded = false;
-        }
+            currentPlatforms.forEach(p => {
+                if (player.x < p.x + p.width &&
+                    player.x + player.width > p.x &&
+                    player.y + player.height < p.y + 10 &&
+                    player.y + player.height + player.dy >= p.y) {
+                    player.y = p.y - player.height;
+                    player.dy = 0;
+                    player.grounded = true;
+                }
+            });
 
-        player.dy += gravity;
-        player.x += player.dx;
-        player.y += player.dy;
+            currentStars.forEach(star => {
+                if (!star.collected &&
+                    player.x < star.x + 20 &&
+                    player.x + player.width > star.x &&
+                    player.y < star.y + 20 &&
+                    player.y + player.height > star.y) {
+                    star.collected = true;
+                    score++;
+                }
+            });
 
-        player.grounded = false;
-        currentPlatforms.forEach(p => {
-            if (player.x < p.x + p.width &&
-                player.x + player.width > p.x &&
-                player.y + player.height < p.y + 10 &&
-                player.y + player.height + player.dy >= p.y) {
-                player.y = p.y - player.height;
-                player.dy = 0;
-                player.grounded = true;
+            if (currentStars.every(s => s.collected)) {
+                if (!portalVisible) {
+                    portalVisible = true;
+                    const lastPlatform = currentPlatforms[currentPlatforms.length - 1];
+                    portal.x = lastPlatform.x + lastPlatform.width - 50;
+                    portal.y = lastPlatform.y - portal.height;
+                }
             }
-        });
 
-        currentStars.forEach(star => {
-            if (!star.collected &&
-                player.x < star.x + 20 &&
-                player.x + player.width > star.x &&
-                player.y < star.y + 20 &&
-                player.y + player.height > star.y) {
-                star.collected = true;
-                score++;
+            if (portalVisible &&
+                player.x < portal.x + portal.width &&
+                player.x + player.width > portal.x &&
+                player.y < portal.y + portal.height &&
+                player.y + player.height > portal.y) {
+                if (level < levels.length - 1) {
+                    level++;
+                    loadLevel(level);
+                } else {
+                    showGameOver();
+                    level = 0;
+                    loadLevel(level);
+                }
             }
-        });
-
-        if (currentStars.every(s => s.collected)) {
-            if (!portalVisible) {
-                portalVisible = true;
-                const lastPlatform = currentPlatforms[currentPlatforms.length - 1];
-                portal.x = lastPlatform.x + lastPlatform.width - 50;
-                portal.y = lastPlatform.y - portal.height;
-            }
-        }
-
-        if (portalVisible &&
-            player.x < portal.x + portal.width &&
-            player.x + player.width > portal.x &&
-            player.y < portal.y + portal.height &&
-            player.y + player.height > portal.y) {
-            if (level < levels.length - 1) {
-                level++;
-                loadLevel(level);
-            } else {
-                showGameOver();
-                level = 0;
-                loadLevel(level);
-            }
-        }
         }
 
         function drawGame() {
@@ -314,7 +297,8 @@
 
         generateSpaceBackground();
         loadLevel(level);
-        loop();
+        gameLoop();
+
 
         const gameOverScreen = document.getElementById("gameOverScreen");
         const restartButton = document.getElementById("restartButton");
