@@ -174,7 +174,7 @@
                     keyCooldown = true;
                 }
                 if (!keys["s"] && !keys["Enter"]) {
-                    keyCooldown = false;
+                    keyCoolAdown = false;
                 }
                 return; // Hoppa över speluppdatering när vi är i menyn
             }
@@ -246,6 +246,27 @@
                 }
             }
         }
+
+        function drawMenu(ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "#000022";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "white";
+            ctx.font = "50px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("STAR * CATCHER", canvas.width / 2, 200);
+
+            ctx.font = "30px Arial";
+            ctx.fillText("Tryck på S för att byta färg", canvas.width / 2, 300);
+            ctx.fillText("Tryck på Enter för att börja", canvas.width / 2, 350);
+
+            ctx.fillText("Vald färg:", canvas.width / 2, 450);
+            ctx.fillStyle = playerSkins[currentSkin];
+            ctx.fillRect(canvas.width / 2 - 25, 480, 50, 50);
+        }
+
 
         function drawGame() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
