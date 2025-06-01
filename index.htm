@@ -1,37 +1,415 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <meta charset="utf-8">
-    <title>Touchtest</title>
+    <meta charset="utf-8" />
+    <title>STAR * CATCHER</title>
     <style>
-        body, html {
+        body {
             margin: 0;
-            padding: 0;
-            height: 100%;
-            background: black;
+            overflow: hidden;
         }
-        #testButton {
+
+        canvas {
+            background: #111;
+            display: block;
+        }
+
+        #gameOverScreen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            text-align: center;
+            padding-top: 100px;
+            font-family: sans-serif;
+            z-index: 1000;
+        }
+
+        #restartButton {
+            font-size: 1.5em;
+            padding: 10px 20px;
+            background: gold;
+            color: black;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        #confettiCanvas {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* TOUCH CONTROLS */
+        #touchControls {
             position: fixed;
             bottom: 20px;
-            left: 20px;
-            width: 100px;
-            height: 100px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            pointer-events: none;
+            z-index: 1001;
+        }
+
+        #touchControls button {
+            width: 80px;
+            height: 80px;
             font-size: 30px;
-            border-radius: 50%;
+            border-radius: 40px;
+            opacity: 0.6;
+            pointer-events: auto;
+            user-select: none;
+            border: none;
             background: white;
         }
     </style>
 </head>
+
 <body>
-    <button id="testButton">P</button>
+    <canvas id="gameCanvas" width="1200" height="800"></canvas>
+
+    <div id="gameOverScreen">
+        <h1>Du klarade spelet! 🎉</h1>
+        <button id="restartButton">Spela igen</button>
+    </div>
+
+    <canvas id="confettiCanvas"></canvas>
+
+    <div id="touchControls">
+        <button id="leftBtn">◀</button>
+        <button id="jumpBtn">⤒</button>
+        <button id="rightBtn">▶</button>
+    </div>
+
+    <audio id="winMusic">
+        <source src="https://cdn.pixabay.com/download/audio/2023/06/08/audio_4a2a9070f0.mp3?filename=winner-171541.mp3"
+            type="audio/mpeg">
+    </audio>
+
+    <audio id="bgm" loop autoplay>
+        <source src="https://cdn.pixabay.com/audio/2023/03/01/audio_ee5e5584b1.mp3" type="audio/mpeg">
+    </audio>
+
     <script>
-        let isRed = false;
-        const btn = document.getElementById('testButton');
-        btn.addEventListener('touchstart', e => {
-            e.preventDefault();
-            isRed = !isRed;
-            document.body.style.background = isRed ? 'red' : 'black';
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const player = { x: 50, y: 300, width: 30, height: 30, color: "deepskyblue", dx: 0, dy: 0, grounded: false };
+        const gravity = 0.5;
+        const keys = {};
+        let score = 0;
+        let level = 0;
+        let portalVisible = false;
+        let portalPulse = 0;
+
+        let gameState = "menu";
+        let currentSkin = 0;
+        const playerSkins = ["red", "blue", "green", "purple"];
+        let keyCooldown = false;
+
+        document.addEventListener("keydown", (e) => keys[e.key] = true);
+        document.addEventListener("keyup", (e) => keys[e.key] = false);
+
+        function setupTouchControls() {
+            const leftBtn = document.getElementById('leftBtn');
+            const rightBtn = document.getElementById('rightBtn');
+            const jumpBtn = document.getElementById('jumpBtn');
+
+            const bindButton = (btn, keyName) => {
+                btn.addEventListener('touchstart', e => {
+                    e.preventDefault();
+                    keys[keyName] = true;
+                });
+                btn.addEventListener('touchend', e => {
+                    e.preventDefault();
+                    keys[keyName] = false;
+                });
+            };
+
+            bindButton(leftBtn, "ArrowLeft");
+            bindButton(rightBtn, "ArrowRight");
+            bindButton(jumpBtn, " ");
+        }
+
+        setupTouchControls();
+
+        const levels = Array.from({ length: 10 }, (_, i) => {
+            const platforms = [
+                { x: 0, y: 370, width: 800, height: 30 },
+                { x: 150 + i * 10, y: 300 - i * 10, width: 100, height: 10 },
+                { x: 350 + i * 5, y: 250 - i * 10, width: 100, height: 10 },
+                { x: 550 - i * 10, y: 200 - i * 5, width: 100, height: 10 },
+            ];
+            const stars = platforms.slice(1).map(p => ({
+                x: p.x + 20,
+                y: p.y - 30,
+                collected: false
+            }));
+            return { platforms, stars };
+        });
+
+        let currentPlatforms = [];
+        let currentStars = [];
+        let portal = { x: 0, y: 0, width: 30, height: 50 };
+
+        function loadLevel(num) {
+            const l = levels[num];
+            currentPlatforms = l.platforms;
+            currentStars = l.stars.map(s => ({ ...s }));
+            player.x = 50;
+            player.y = 300;
+            player.dy = 0;
+            score = 0;
+            portalVisible = false;
+        }
+
+        function update() {
+            if (gameState === "menu") {
+                if (keys["s"] && !keyCooldown) {
+                    currentSkin = (currentSkin + 1) % playerSkins.length;
+                    keyCooldown = true;
+                }
+                if (keys["Enter"] && !keyCooldown) {
+                    gameState = "playing";
+                    loadLevel(0);
+                    keyCooldown = true;
+                }
+                if (!keys["s"] && !keys["Enter"]) {
+                    keyCooldown = false;
+                }
+                return;
+            }
+
+            player.dx = 0;
+            if (keys["ArrowLeft"]) player.dx = -3;
+            if (keys["ArrowRight"]) player.dx = 3;
+            if ((keys["ArrowUp"] || keys[" "]) && player.grounded) {
+                if (level >= 8) {
+                    player.dy = -14;
+                } else {
+                    player.dy = -12;
+                }
+                player.grounded = false;
+            }
+
+            player.dy += gravity;
+            player.x += player.dx;
+            player.y += player.dy;
+
+            player.grounded = false;
+            currentPlatforms.forEach(p => {
+                if (player.x < p.x + p.width &&
+                    player.x + player.width > p.x &&
+                    player.y + player.height < p.y + 10 &&
+                    player.y + player.height + player.dy >= p.y) {
+                    player.y = p.y - player.height;
+                    player.dy = 0;
+                    player.grounded = true;
+                }
+            });
+
+            currentStars.forEach(star => {
+                if (!star.collected &&
+                    player.x < star.x + 20 &&
+                    player.x + player.width > star.x &&
+                    player.y < star.y + 20 &&
+                    player.y + player.height > star.y) {
+                    star.collected = true;
+                    score++;
+                }
+            });
+
+            if (currentStars.every(s => s.collected)) {
+                if (!portalVisible) {
+                    portalVisible = true;
+                    const lastPlatform = currentPlatforms[currentPlatforms.length - 1];
+                    portal.x = lastPlatform.x + lastPlatform.width - 50;
+                    portal.y = lastPlatform.y - portal.height;
+                }
+            }
+
+            if (portalVisible &&
+                player.x < portal.x + portal.width &&
+                player.x + player.width > portal.x &&
+                player.y < portal.y + portal.height &&
+                player.y + player.height > portal.y) {
+                if (level < levels.length - 1) {
+                    level++;
+                    loadLevel(level);
+                } else {
+                    showGameOver();
+                    level = 0;
+                    loadLevel(level);
+                }
+            }
+        }
+
+        function drawMenu(ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#000022";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "white";
+            ctx.font = "50px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("STAR * CATCHER", canvas.width / 2, 200);
+
+            ctx.font = "30px Arial";
+            ctx.fillText("Tryck på S för att byta färg", canvas.width / 2, 300);
+            ctx.fillText("Tryck på Enter för att börja", canvas.width / 2, 350);
+
+            ctx.fillText("Vald färg:", canvas.width / 2, 450);
+            ctx.fillStyle = playerSkins[currentSkin];
+            ctx.fillRect(canvas.width / 2 - 25, 480, 50, 50);
+        }
+
+        const backgroundCanvas = document.createElement("canvas");
+        backgroundCanvas.width = canvas.width;
+        backgroundCanvas.height = canvas.height;
+        const bgCtx = backgroundCanvas.getContext("2d");
+
+        function generateSpaceBackground() {
+            bgCtx.fillStyle = "#0a0a2a";
+            bgCtx.fillRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+
+            for (let i = 0; i < 150; i++) {
+                const x = Math.random() * backgroundCanvas.width;
+                const y = Math.random() * backgroundCanvas.height;
+                const r = Math.random() * 1.5;
+                bgCtx.fillStyle = "white";
+                bgCtx.beginPath();
+                bgCtx.arc(x, y, r, 0, Math.PI * 2);
+                bgCtx.fill();
+            }
+
+            for (let i = 0; i < 6; i++) {
+                const x = Math.random() * backgroundCanvas.width;
+                const y = Math.random() * backgroundCanvas.height;
+                const radius = 20 + Math.random() * 40;
+                const hue = Math.floor(Math.random() * 360);
+                bgCtx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+                bgCtx.beginPath();
+                bgCtx.arc(x, y, radius, 0, Math.PI * 2);
+                bgCtx.fill();
+            }
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(backgroundCanvas, 0, 0);
+
+            ctx.fillStyle = playerSkins[currentSkin];
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            ctx.fillStyle = "white";
+            currentPlatforms.forEach(p => ctx.fillRect(p.x, p.y, p.width, p.height));
+
+            currentStars.forEach(star => {
+                if (!star.collected) {
+                    ctx.fillStyle = "gold";
+                    ctx.beginPath();
+                    ctx.arc(star.x + 10, star.y + 10, 10, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            if (portalVisible) {
+                portalPulse += 0.1;
+                const alpha = 0.6 + 0.4 * Math.sin(portalPulse);
+                ctx.fillStyle = `rgba(0,200,255,${alpha})`;
+                ctx.fillRect(portal.x, portal.y, portal.width, portal.height);
+            }
+
+            ctx.fillStyle = "white";
+            ctx.font = "20px Arial";
+            ctx.fillText("Stjärnor: " + score, 10, 30);
+            ctx.fillText("Nivå: " + (level + 1), 700, 30);
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (gameState === "menu") {
+                drawMenu(ctx);
+            } else if (gameState === "playing") {
+                update();
+                drawGame();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        generateSpaceBackground();
+        loadLevel(level);
+        gameLoop();
+
+        const gameOverScreen = document.getElementById("gameOverScreen");
+        const restartButton = document.getElementById("restartButton");
+        const winMusic = document.getElementById("winMusic");
+        const confettiCanvas = document.getElementById("confettiCanvas");
+        const confettiCtx = confettiCanvas.getContext("2d");
+
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+
+        let confetti = [];
+        let confettiInterval;
+
+        function showGameOver() {
+            gameOverScreen.style.display = "block";
+            winMusic.play();
+            launchConfetti();
+        }
+
+        function launchConfetti() {
+            confettiCanvas.style.display = "block";
+            confetti = Array.from({ length: 200 }, () => ({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight - window.innerHeight,
+                r: Math.random() * 6 + 4,
+                d: Math.random() * 10 + 2,
+                color: `hsl(${Math.random() * 360}, 100%, 50%)`
+            }));
+
+            confettiInterval = setInterval(() => {
+                confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+                confetti.forEach(p => {
+                    confettiCtx.beginPath();
+                    confettiCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    confettiCtx.fillStyle = p.color;
+                    confettiCtx.fill();
+                    p.y += p.d;
+                    if (p.y > window.innerHeight) p.y = -10;
+                });
+            }, 33);
+        }
+
+        function stopConfetti() {
+            clearInterval(confettiInterval);
+            confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            confettiCanvas.style.display = "none";
+        }
+
+        restartButton.addEventListener("click", () => {
+            gameOverScreen.style.display = "none";
+            winMusic.pause();
+            winMusic.currentTime = 0;
+            stopConfetti();
+            level = 1;
+            loadLevel(level);
         });
     </script>
 </body>
+
 </html>
