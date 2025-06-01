@@ -27,13 +27,14 @@
             z-index: 100;
         }
         #touchControls {
-            display: none;
+            display: block; /* Alltid visa touchknappar */
             position: fixed;
             bottom: 20px;
             width: 100%;
             text-align: center;
             z-index: 110;
         }
+
         .touchButton {
             display: inline-block;
             width: 70px;
@@ -77,11 +78,7 @@
             pointer-events: none;
             z-index: 150;
         }
-        @media (max-width: 800px) {
-            #touchControls {
-                display: block;
-            }
-        }
+        
     </style>
 </head>
 <body>
