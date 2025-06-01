@@ -26,6 +26,25 @@
             cursor: pointer;
             z-index: 100;
         }
+        #touchControls {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            z-index: 110;
+        }
+        .touchButton {
+            display: inline-block;
+            width: 70px;
+            height: 70px;
+            margin: 10px;
+            font-size: 1.5em;
+            background: rgba(255, 255, 255, 0.5);
+            border: none;
+            border-radius: 50%;
+            user-select: none;
+        }
         #gameOverScreen {
             display: none;
             position: fixed;
@@ -58,11 +77,22 @@
             pointer-events: none;
             z-index: 150;
         }
+        @media (max-width: 800px) {
+            #touchControls {
+                display: block;
+            }
+        }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas" width="1200" height="800"></canvas>
     <button id="startButton">START</button>
+
+    <div id="touchControls">
+        <button class="touchButton" id="leftBtn">⬅️</button>
+        <button class="touchButton" id="jumpBtn">⬆️</button>
+        <button class="touchButton" id="rightBtn">➡️</button>
+    </div>
 
     <div id="gameOverScreen">
         <h1>Du klarade spelet! 🎉</h1>
@@ -91,6 +121,18 @@
 
         document.addEventListener("keydown", (e) => keys[e.key] = true);
         document.addEventListener("keyup", (e) => keys[e.key] = false);
+
+        // Touch buttons
+        const leftBtn = document.getElementById("leftBtn");
+        const rightBtn = document.getElementById("rightBtn");
+        const jumpBtn = document.getElementById("jumpBtn");
+
+        leftBtn.addEventListener("touchstart", () => keys["ArrowLeft"] = true);
+        leftBtn.addEventListener("touchend", () => keys["ArrowLeft"] = false);
+        rightBtn.addEventListener("touchstart", () => keys["ArrowRight"] = true);
+        rightBtn.addEventListener("touchend", () => keys["ArrowRight"] = false);
+        jumpBtn.addEventListener("touchstart", () => keys["ArrowUp"] = true);
+        jumpBtn.addEventListener("touchend", () => keys["ArrowUp"] = false);
 
         const levels = Array.from({ length: 10 }, (_, i) => {
             const platforms = [
